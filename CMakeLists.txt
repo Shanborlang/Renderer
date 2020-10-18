@@ -3,12 +3,19 @@ project(Renderer)
 
 # Source files
 set(SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
+set(HEADER_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include")   # Main headers
+set(CORE_DIR "${HEADER_DIR}/core")      # Core headers
+set(COMMON_DIR "${HEADER_DIR}/common")      # Common Headers
 set(LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib")
 set(SOURCES "${SRC_DIR}/main.cpp")
 
+# Configure assets header file
+configure_file(src/common/RootDir.h.in src/common/RootDir.h)
+include_directories(${CMAKE_BINARY_DIR}/src)
+
 # Executable definition and properties
 add_executable(${PROJECT_NAME} ${SOURCES})
-target_include_directories(${PROJECT_NAME} PRIVATE "${SRC_DIR}")
+target_include_directories(${PROJECT_NAME} PRIVATE "${SRC_DIR}" "${HEADER_DIR}" "${CORE_DIR}" "${COMMON_DIR}")
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
 
 # GLFW
@@ -28,3 +35,9 @@ add_library("glad" "${GLAD_DIR}/src/glad.c")
 target_include_directories("glad" PRIVATE "${GLAD_DIR}/include")
 target_include_directories(${PROJECT_NAME} PRIVATE "${GLAD_DIR}/include")
 target_link_libraries(${PROJECT_NAME} "glad" "${CMAKE_DL_LIBS}")
+
+# CMAKE_DIR to find external dependecies
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
+
+# GLM
+include_directories("${CMAKE_SOURCE_DIR}/lib/glm")
