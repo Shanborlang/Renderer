@@ -7,7 +7,7 @@
 
 #include "core.hpp"
 #include "scene.hpp"
-#include "debug.hpp"
+#include "common/debug.hpp"
 
 #include <GLFW/glfw3.h>
 
@@ -22,28 +22,27 @@ constexpr uint32_t HEIGHT = 600;
 
 class SceneRunner {
 private:
-    GLFWwindow *window;
-    int fbw, fbh;
+    GLFWwindow *window {nullptr};
+    int fbw{}, fbh{};
     bool debug;
 
 public:
-    SceneRunner(const std::string &windowTitle, int width = WIDTH, int height = HEIGHT, int samples = 0) : debug{true} {
+    explicit SceneRunner(const std::string &l_windowTitle, int l_width = WIDTH, int l_height = HEIGHT, int l_samples = 0) : debug{true} {
         if (!glfwInit()) exit(EXIT_FAILURE);
 
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 
-        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
         glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
         if (debug) {
             glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
         }
-        if (samples > 0) {
-            glfwWindowHint(GLFW_SAMPLES, samples);
+        if (l_samples > 0) {
+            glfwWindowHint(GLFW_SAMPLES, l_samples);
         }
 
-        window = glfwCreateWindow(width, height, windowTitle.c_str(), nullptr, nullptr);
+        window = glfwCreateWindow(l_width, l_height, l_windowTitle.c_str(), nullptr, nullptr);
         if (!window) {
             std::cerr << "Unable to create OpenGL context." << std::endl;
             glfwTerminate();
@@ -89,22 +88,22 @@ public:
     }
 
 private:
-    void mainLoop(GLFWwindow *window, std::unique_ptr<Scene> scene) {
-        scene->setDimensions(fbw, fbh);
-        scene->initScene();
-        scene->resize(fbw, fbh);
+    void mainLoop(GLFWwindow *l_window, std::unique_ptr<Scene> l_scene) const {
+        l_scene->setDimensions(fbw, fbh);
+        l_scene->initScene();
+        l_scene->resize(fbw, fbh);
 
-        while (!glfwWindowShouldClose(window) && !glfwGetKey(window, GLFW_KEY_ESCAPE)) {
+        while (!glfwWindowShouldClose(l_window) && !glfwGetKey(l_window, GLFW_KEY_ESCAPE)) {
             debug::check_for_opengl_error(__FILE__, __LINE__);
 
-            scene->update(static_cast<float>(glfwGetTime()));
-            scene->render();
+            l_scene->update(static_cast<float>(glfwGetTime()));
+            l_scene->render();
 
-            glfwSwapBuffers(window);
+            glfwSwapBuffers(l_window);
             glfwPollEvents();
-            int state = glfwGetKey(window, GLFW_KEY_SPACE);
+            int state = glfwGetKey(l_window, GLFW_KEY_SPACE);
             if (state == GLFW_PRESS)
-                scene->animate(!scene->animating());
+                l_scene->animate(!l_scene->animating());
         }
     }
 };

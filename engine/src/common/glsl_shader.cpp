@@ -2,8 +2,8 @@
 // Created by shanb on 18-10-2020.
 //
 
-#include "glsl_shader.hpp"
-#include "debug.hpp"
+#include "common/glsl_shader.hpp"
+#include "common/debug.hpp"
 
 #include <fstream>
 #include <sstream>

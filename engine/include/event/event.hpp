@@ -1,0 +1,6 @@
+#ifndef RENDERER_EVENT_HPP
+#define RENDERER_EVENT_HPP
+
+
+
+#endif //RENDERER_EVENT_HPP

@@ -5,7 +5,7 @@
 #ifndef RENDERER_SCENE_HPP
 #define RENDERER_SCENE_HPP
 
-#include "glm/glm.hpp"
+#include <glm/glm.hpp>
 
 class Scene {
 

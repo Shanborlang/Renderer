@@ -5,7 +5,7 @@
 #ifndef RENDERER_GLSL_SHADER_HPP
 #define RENDERER_GLSL_SHADER_HPP
 
-#include "core.hpp"
+#include "core/core.hpp"
 
 #include <string>
 #include <map>

@@ -1,6 +1,6 @@
-#include "core.hpp"
-#include "scene.hpp"
-#include "scene_runner.hpp"
+#include "core/core.hpp"
+#include "core/scene.hpp"
+#include "core/scene_runner.hpp"
 #include <memory>
 
 class Example : public Scene {

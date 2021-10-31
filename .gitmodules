@@ -1,6 +1,6 @@
-[submodule "lib/glfw"]
-	path = lib/glfw
+[submodule "third_party/glfw"]
+	path = third_party/glfw
 	url = https://github.com/glfw/glfw.git
-[submodule "lib/glm"]
-	path = lib/glm
+[submodule "third_party/glm"]
+	path = third_party/glm
 	url = https://github.com/OSVR/glm.git
