@@ -55,7 +55,7 @@ void Shader::detachAndDeleteShaderObjects() {
     }
 }
 
-void Shader::compileShader(const char *fileName) {
+void Shader::compileShader(const char *fileName, ShaderFormat fmt) {
     // Check the file name's extension to determine the shader type
     string ext = getExtension(fileName);
     ShaderType type;
@@ -90,7 +90,7 @@ string Shader::getExtension(const char *fileName) {
     return "";
 }
 
-void Shader::compileShader(const char *fileName, ShaderType type) {
+void Shader::compileShader(const char *fileName, ShaderType type, ShaderFormat fmt) {
     if (!fileExists(fileName)) {
         string message = string("Shader: ") + fileName + " not found.";
         throw ShaderException(message);
@@ -113,7 +113,11 @@ void Shader::compileShader(const char *fileName, ShaderType type) {
     code << inFile.rdbuf();
     inFile.close();
 
-    compileShader(code.str(), type, fileName);
+    if(fmt == ShaderFormat::DEFAULT) {
+        compileShader(code.str(), type, fileName);
+    }else if(fmt == ShaderFormat::SPRIV) {
+        loadSpirvShader(type, fileName);
+    }
 }
 
 void Shader::compileShader(const std::string &source, ShaderType type, const char *fileName) {
@@ -219,25 +223,25 @@ void Shader::findUniformLocations() {
 
     for( GLint i = 0; i < numUniforms; ++i ) {
         GLint results[4];
-        glGetProgramResourceiv(handle, GL_UNIFORM, i, 4, properties, 4, NULL, results);
+        glGetProgramResourceiv(handle, GL_UNIFORM, i, 4, properties, 4, nullptr, results);
 
         if( results[3] != -1 ) continue;  // Skip uniforms in blocks
         GLint nameBufSize = results[0] + 1;
         char * name = new char[nameBufSize];
-        glGetProgramResourceName(handle, GL_UNIFORM, i, nameBufSize, NULL, name);
+        glGetProgramResourceName(handle, GL_UNIFORM, i, nameBufSize, nullptr, name);
         uniformLocations[name] = results[2];
         delete [] name;
     }
 #endif
 }
 
-void Shader::use() {
+void Shader::use() const {
     if (handle <= 0 || (!linked))
         throw ShaderException("Shader has not been linked");
     glUseProgram(handle);
 }
 
-int Shader::getHandle() const {
+uint32_t Shader::getHandle() const {
     return handle;
 }
 
@@ -334,12 +338,12 @@ void Shader::printActiveUniforms() {
     printf("Active uniforms:\n");
     for( int i = 0; i < numUniforms; ++i ) {
         GLint results[4];
-        glGetProgramResourceiv(handle, GL_UNIFORM, i, 4, properties, 4, NULL, results);
+        glGetProgramResourceiv(handle, GL_UNIFORM, i, 4, properties, 4, nullptr, results);
 
         if( results[3] != -1 ) continue;  // Skip uniforms in blocks
         GLint nameBufSize = results[0] + 1;
         char * name = new char[nameBufSize];
-        glGetProgramResourceName(handle, GL_UNIFORM, i, nameBufSize, NULL, name);
+        glGetProgramResourceName(handle, GL_UNIFORM, i, nameBufSize, nullptr, name);
         printf("%-5d %s (%s)\n", results[2], name, getTypeString(results[1]));
         delete [] name;
     }
@@ -393,25 +397,25 @@ void Shader::printActiveUniformBlocks() {
 
     for(int block = 0; block < numBlocks; ++block) {
         GLint blockInfo[2];
-        glGetProgramResourceiv(handle, GL_UNIFORM_BLOCK, block, 2, blockProps, 2, NULL, blockInfo);
+        glGetProgramResourceiv(handle, GL_UNIFORM_BLOCK, block, 2, blockProps, 2, nullptr, blockInfo);
         GLint numUnis = blockInfo[0];
 
         char * blockName = new char[blockInfo[1]+1];
-        glGetProgramResourceName(handle, GL_UNIFORM_BLOCK, block, blockInfo[1]+1, NULL, blockName);
+        glGetProgramResourceName(handle, GL_UNIFORM_BLOCK, block, blockInfo[1]+1, nullptr, blockName);
         printf("Uniform block \"%s\":\n", blockName);
         delete [] blockName;
 
-        GLint * unifIndexes = new GLint[numUnis];
-        glGetProgramResourceiv(handle, GL_UNIFORM_BLOCK, block, 1, blockIndex, numUnis, NULL, unifIndexes);
+        auto * unifIndexes = new GLint[numUnis];
+        glGetProgramResourceiv(handle, GL_UNIFORM_BLOCK, block, 1, blockIndex, numUnis, nullptr, unifIndexes);
 
         for( int unif = 0; unif < numUnis; ++unif ) {
             GLint uniIndex = unifIndexes[unif];
             GLint results[3];
-            glGetProgramResourceiv(handle, GL_UNIFORM, uniIndex, 3, props, 3, NULL, results);
+            glGetProgramResourceiv(handle, GL_UNIFORM, uniIndex, 3, props, 3, nullptr, results);
 
             GLint nameBufSize = results[0] + 1;
             char * name = new char[nameBufSize];
-            glGetProgramResourceName(handle, GL_UNIFORM, uniIndex, nameBufSize, NULL, name);
+            glGetProgramResourceName(handle, GL_UNIFORM, uniIndex, nameBufSize, nullptr, name);
             printf("    %s (%s)\n", name, getTypeString(results[1]));
             delete [] name;
         }
@@ -450,11 +454,11 @@ void Shader::printActiveAttribs() {
     printf("Active attributes:\n");
     for( int i = 0; i < numAttribs; ++i ) {
         GLint results[3];
-        glGetProgramResourceiv(handle, GL_PROGRAM_INPUT, i, 3, properties, 3, NULL, results);
+        glGetProgramResourceiv(handle, GL_PROGRAM_INPUT, i, 3, properties, 3, nullptr, results);
 
         GLint nameBufSize = results[0] + 1;
         char * name = new char[nameBufSize];
-        glGetProgramResourceName(handle, GL_PROGRAM_INPUT, i, nameBufSize, NULL, name);
+        glGetProgramResourceName(handle, GL_PROGRAM_INPUT, i, nameBufSize, nullptr, name);
         printf("%-5d %s (%s)\n", results[2], name, getTypeString(results[1]));
         delete [] name;
     }
@@ -538,4 +542,75 @@ int Shader::getUniformLocation(const char *name) {
     }
 
     return pos->second;
+}
+
+std::string getProgramInfoLog(GLuint program) {
+    int length = 0;
+    glGetProgramiv(program, GL_INFO_LOG_LENGTH, &length);
+    if (length > 0) {
+        std::string log(length, ' ');
+        int written = 0;
+        glGetProgramInfoLog(program, length, &written, &log[0]);
+        return log;
+    }
+    return "";
+}
+
+std::string getShaderInfoLog(GLuint shader) {
+    int length = 0;
+    glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
+    if (length > 0) {
+        std::string log(length, ' ');
+        int written = 0;
+        glGetShaderInfoLog(shader, length, &written, &log[0]);
+        return log;
+    }
+    return "";
+}
+
+void Shader::loadSpirvShader(ShaderType type, const char *fileName) {
+    printf("Loading SPIR-V shaders...\n");
+
+    std::string tempFilename(fileName);
+    tempFilename += ".spv";
+
+    if (handle <= 0) {
+        handle = glCreateProgram();
+        if (handle == 0) {
+            throw ShaderException("Unable to create shader program.");
+        }
+    }
+
+    const GLenum shader_type = static_cast<std::underlying_type_t<ShaderType>>(type);
+    GLuint shaderHandle = glCreateShader(shader_type);
+
+    {
+        printf("Loading SPIR-V binary: %s\n", fileName);
+        std::ifstream inStream(tempFilename, std::ios::binary);
+        std::istreambuf_iterator<char> startIt(inStream), endIt;
+        std::vector<char> buffer(startIt, endIt);
+        inStream.close();
+
+        glShaderBinary(1, &shaderHandle, GL_SHADER_BINARY_FORMAT_SPIR_V, buffer.data(), (int)buffer.size());
+    }
+
+    glSpecializeShader(shaderHandle, "main", 0, nullptr, nullptr);
+
+    int status;
+    glGetShaderiv(shaderHandle, GL_COMPILE_STATUS, &status);
+    if(GL_FALSE == status) {
+        // Compile failed, get log
+        std::string msg;
+        if (fileName) {
+            msg = string(fileName) + ": shader compliation failed\n";
+        } else {
+            msg = "Shader compilation failed.\n";
+        }
+        msg += getShaderInfoLog(shaderHandle);
+
+        throw ShaderException(msg);
+    }
+    else {
+        glAttachShader(handle, shaderHandle);
+    }
 }

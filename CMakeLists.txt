@@ -22,4 +22,4 @@ include_directories("${CMAKE_SOURCE_DIR}/third_party/glm")
 
 add_subdirectory(engine)
 
-add_subdirectory(app)
+add_subdirectory(sandbox)

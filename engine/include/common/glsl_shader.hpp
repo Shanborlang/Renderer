@@ -14,7 +14,7 @@
 
 class ShaderException : public std::runtime_error {
 public:
-    ShaderException(const std::string &msg) : std::runtime_error(msg) {}
+    explicit ShaderException(const std::string &msg) : std::runtime_error(msg) {}
 };
 
 enum class ShaderType {
@@ -24,6 +24,11 @@ enum class ShaderType {
     TESS_CONTROL = GL_TESS_CONTROL_SHADER,
     TESS_EVALUATION = GL_TESS_EVALUATION_SHADER,
     COMPUTE = GL_COMPUTE_SHADER
+};
+
+enum class ShaderFormat {
+    DEFAULT,
+    SPRIV
 };
 
 class Shader {
@@ -44,16 +49,17 @@ public:
     Shader(const Shader&) = delete;
     Shader& operator=(const Shader&) = delete;
 
-    void compileShader(const char* fileName);
-    void compileShader(const char* fileName, ShaderType type);
+    void compileShader(const char* fileName, ShaderFormat fmt = ShaderFormat::DEFAULT);
+    void compileShader(const char* fileName, ShaderType type, ShaderFormat fmt = ShaderFormat::DEFAULT);
     void compileShader(const std::string &source, ShaderType type, const char* fileName = nullptr);
+    void loadSpirvShader(ShaderType type, const char* fileName);
 
     void link();
     void validate();
-    void use();
+    void use() const;
 
-    int getHandle() const;
-    bool isLinked() const;
+    [[nodiscard]] uint32_t getHandle() const;
+    [[nodiscard]] bool isLinked() const;
 
     void bindAttribLocation(GLuint location, const char* name);
     void bindFragDataLocation(GLuint location, const char* name);
@@ -75,7 +81,7 @@ public:
     void printActiveUniformBlocks();
     void printActiveAttribs();
 
-    const char* getTypeString(GLenum type);
+    static const char* getTypeString(GLenum type);
 };
 
 #endif //RENDERER_GLSL_SHADER_HPP
